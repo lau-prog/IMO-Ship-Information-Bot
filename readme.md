@@ -4,6 +4,8 @@
 
 This project demonstrates an advanced automation workflow that integrates **Telegram**, **n8n**, and **Headless Chrome (Puppeteer)** to bypass complex authentication systems and retrieve relevant data.
 
+![IMO Ship Bot Telegram Screenshot](assets/email-screenshot.png)
+
 ---
 
 ##  Key Technical Capabilities
