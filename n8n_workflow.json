@@ -1,0 +1,281 @@
+{
+  "name": "IMO Ship Information Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        -192
+      ],
+      "id": "2133d3b3-3b85-4d24-8a53-4cbc4b0abce9",
+      "name": "Telegram Trigger",
+      "webhookId": "ffd41fcb-f35c-4658-b41b-4bbc388bf353",
+      "alwaysOutputData": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "qCwRhNtD0iHtmrUa",
+          "name": "GISIS Ship Bot Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c4d2b14e-a16d-4b74-9137-210a92c656b5",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        768,
+        -80
+      ],
+      "id": "ddf23f6b-f06d-4be4-836f-743b6325c928",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "=🔍 Searching IMO GISIS for \"{{ $json.message.text }}\"...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1008,
+        -96
+      ],
+      "id": "9948c3df-1974-4f77-814e-8324c799b2df",
+      "name": "Send a text message",
+      "webhookId": "563de0fa-c6b3-409f-aed1-28263c309674",
+      "credentials": {
+        "telegramApi": {
+          "id": "qCwRhNtD0iHtmrUa",
+          "name": "GISIS Ship Bot Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        64,
+        48
+      ],
+      "id": "ddb8f612-13fc-4291-a708-be0cbfb83f29",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c64d4d40-dccb-4f47-a5b8-c4361046ce16",
+              "name": "message",
+              "value": "={\n  \"text\": \"DOLLY 798\",\n  \"chat\": {\n    \"id\": 6866012247\n  }\n}\n",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        48
+      ],
+      "id": "0e1aea26-b63c-46f0-9de6-cb5689189a42",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "command": "=node /home/node/scrape.js \"{{ $node['Telegram Trigger'].json.message.text }}\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        -96
+      ],
+      "id": "74876ffc-4fef-4756-8e5b-8729f7893aa0",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw command output\nconst commandResult = $('Execute Command').first().json;\n\n// Parse JSON string from stdout\nlet shipData;\ntry {\n  shipData = JSON.parse(commandResult.stdout);\n} catch (parseError) {\n  // Fallback if parsing fails\n  return {\n    chatid: $('Telegram Trigger').first().json.message.chat.id,\n    text: `Error parsing ship data: ${parseError.message}\\n\\n${commandResult.stdout.substring(0, 500)}`,\n    parsemode: 'Markdown'\n  };\n}\n\n// Format Telegram message\nif (!shipData.success) {\n  return {\n    chatid: $('Telegram Trigger').first().json.message.chat.id,\n    text: `${shipData.message} Ship lookup failed.`,\n    parsemode: 'Markdown'\n  };\n}\n\nconst data = shipData.data;\nlet message = `\n**${data.name || 'Unknown Ship'}**\n\n**IMO:** ${data.imo || 'NA'}\n**Flag:** ${data.flag || 'NA'}\n**Type:** ${data.type || 'NA'}\n**Tonnage:** ${data.grossTonnage || 'NA'}\n**Built:** ${data.buildDate || 'NA'}\n\n**Owner:** ${data.ownerName || 'NA'}\n${data.ownerDetails ? `**Address:** ${data.ownerDetails.address || 'NA'}` : ''}\n${data.history ? `**Name History:** ${data.history.names?.map(n => n).join(', ') || 'NA'}` : ''}\n**Status:** ${data.ownerDetails?.status || 'Active'}\n`;\n\nreturn {\n  chatid: $('Telegram Trigger').first().json.message.chat.id,\n  text: message,\n  parsemode: 'Markdown',\n  disable_web_page_preview: true\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        -96
+      ],
+      "id": "388ddbbf-ae07-40fe-9ca9-9a401b77ca26",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1808,
+        -96
+      ],
+      "id": "e5e89ada-165a-4157-a83a-b6eb0bda2a90",
+      "name": "Send a text message1",
+      "webhookId": "2db19a65-9058-42c1-b5a8-44bb8fc886a4",
+      "credentials": {
+        "telegramApi": {
+          "id": "qCwRhNtD0iHtmrUa",
+          "name": "GISIS Ship Bot Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"parameters\": {\n    \"mode\": \"jsonOutput\",\n    \"assignments\": {\n      \"assignments\": [\n        {\n          \"id\": \"ship-name\",\n          \"name\": \"ship_name\",\n          \"value\": \"={{ $('Telegram Trigger').first().json.message.text }}\",\n          \"type\": \"string\"\n        },\n        {\n          \"id\": \"chat-id\",\n          \"name\": \"chat_id\", \n          \"value\": \"={{ $('Telegram Trigger').first().json.message.chat.id }}\",\n          \"type\": \"number\"\n        }\n      ]\n    },\n    \"options\": {}\n  },\n  \"id\": \"pass-ship-name\",\n  \"name\": \"Pass Ship Name\",\n  \"type\": \"n8n-nodes-base.set\",\n  \"typeVersion\": 3.4,\n  \"position\": [1100, -96],\n  \"pinData\": {}\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1216,
+        -96
+      ],
+      "id": "fe22d9e4-fb6f-4d01-bd6e-ea5ba43aa4e2",
+      "name": "Pass Ship Name"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Pass Ship Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass Ship Name": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6ee9579c-200b-4a90-8468-6c3a7b7e6b41",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4f5ae14f60cab589d4d537320aefbc176f5340bb1063408aca1612ccc393433d"
+  },
+  "id": "3lnNKtBX9uGqq99N",
+  "tags": []
+}

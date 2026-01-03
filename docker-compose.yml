@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  n8n:
+    build: .
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - WEBHOOK_URL=https://n8n.dawa-tashi.dev
+      - N8N_PROTOCOL=https
+      - N8N_HOST=n8n.dawa-tashi.dev
+      # --- YOUR REQUIRED SETTINGS ---
+      - N8N_ALLOW_EXECUTE_COMMAND=true
+      - N8N_ENABLE_NODE_DEV=true
+      - NODES_EXCLUDE=[]
+      - N8N_FILESYSTEM_PATH_WHITELIST=/home/node/.n8n/
+      # ------------------------------
+      - NODE_FUNCTION_ALLOW_EXTERNAL=puppeteer-core
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - GISIS_USERNAME=******  #please insert
+      - GISIS_PASSWORD=*******  #please insert
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./scrape.js:/home/node/scrape.js
+    depends_on:
+      - chrome
+
+  # 🟢 FIX: 'chrome' is now indented by 2 spaces so it belongs to 'services'
+  chrome:
+    image: browserless/chrome:latest
+    container_name: chrome
+    restart: unless-stopped
+    shm_size: '2gb'
+    ports:
+      - "3000:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+      - MAX_QUEUE_LENGTH=5
+      - PREBOOT_CHROME=true
+
+volumes:
+  n8n_data:
+    external: true
